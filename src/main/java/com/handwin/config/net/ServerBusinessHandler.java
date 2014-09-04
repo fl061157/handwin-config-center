@@ -1,6 +1,9 @@
 package com.handwin.config.net;
 
+import java.util.Set;
+
 import io.netty.channel.ChannelHandler.Sharable;
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 
@@ -9,6 +12,7 @@ import org.springframework.stereotype.Service;
 
 import com.handwin.config.bean.ConfigInfo;
 import com.handwin.config.mapper.ConfigInfoMapper;
+import com.handwin.config.net.SessionManager.Resources;
 import com.handwin.config.proto.MessageProto;
 
 /**
@@ -40,15 +44,26 @@ public class ServerBusinessHandler extends SimpleChannelInboundHandler<BaseFrame
 			ConfigQueryFrame response = new ConfigQueryFrame() ;
 			response.setConfigMessage(configMessage) ; 
 			ctx.writeAndFlush( response ) ;  //TODO 需要注册关注的点 当点变化的时候 通知
-		} else if( msg instanceof ConfigSetFrame ) {
+			SessionManager.getInstance().subscribe(new Resources(region, business), ctx.channel() );  
+			
+  		} else if( msg instanceof ConfigSetFrame ) {
 			ConfigSetFrame configSetFrame = (ConfigSetFrame) msg ; //TODO 通知
 			ConfigInfo configInfo = new ConfigInfo() ;
 			configInfo.setBusiness( configSetFrame.getConfigMessage().getBusiness() ) ; 
 			configInfo.setRegion( configSetFrame.getConfigMessage().getRegion()  ) ;
 			configInfo.setContent( configSetFrame.getConfigMessage().getContent() ) ;
 			configInfoMapper.create(configInfo) ;
-			//TODO 通知 已经订阅该服务的 使用者 更新相关配置 
-		}
+			Set<Channel> channelSet = SessionManager.getInstance().lookUp(new Resources(configSetFrame.getConfigMessage().getRegion()  , configSetFrame.getConfigMessage().getBusiness() )) ;
+			if( channelSet != null ) {
+				MessageProto.ConfigMessage.Builder configMessageBuilder = MessageProto.ConfigMessage.newBuilder() ;
+				MessageProto.ConfigMessage configMessage = configMessageBuilder.build() ;
+				ConfigQueryFrame response = new ConfigQueryFrame() ;
+				response.setConfigMessage(configMessage) ; 
+				for( Channel channel : channelSet ) {
+					channel.writeAndFlush( response ) ; 
+				}
+			}
+  		}
 	}
 	
 	@Override
@@ -56,6 +71,12 @@ public class ServerBusinessHandler extends SimpleChannelInboundHandler<BaseFrame
 			throws Exception {
 		cause.printStackTrace(); 
 		ctx.close() ;
+	}
+	
+	@Override
+	public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+		Channel channel = ctx.channel() ;
+		SessionManager.getInstance().unSubscribeAll(channel); 
 	}
 	
 
