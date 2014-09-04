@@ -52,10 +52,14 @@ public class ServerBusinessHandler extends SimpleChannelInboundHandler<BaseFrame
 			configInfo.setBusiness( configSetFrame.getConfigMessage().getBusiness() ) ; 
 			configInfo.setRegion( configSetFrame.getConfigMessage().getRegion()  ) ;
 			configInfo.setContent( configSetFrame.getConfigMessage().getContent() ) ;
-			configInfoMapper.create(configInfo) ;
+			//TODO CHANGE TO UPDATE
+			//configInfoMapper.create(configInfo) ;
 			Set<Channel> channelSet = SessionManager.getInstance().lookUp(new Resources(configSetFrame.getConfigMessage().getRegion()  , configSetFrame.getConfigMessage().getBusiness() )) ;
 			if( channelSet != null ) {
 				MessageProto.ConfigMessage.Builder configMessageBuilder = MessageProto.ConfigMessage.newBuilder() ;
+				configMessageBuilder.setBusiness( configInfo.getBusiness() ) ; 
+				configMessageBuilder.setRegion( configInfo.getRegion() ) ;
+				configMessageBuilder.setContent( configInfo.getContent() ) ; 
 				MessageProto.ConfigMessage configMessage = configMessageBuilder.build() ;
 				ConfigQueryFrame response = new ConfigQueryFrame() ;
 				response.setConfigMessage(configMessage) ; 

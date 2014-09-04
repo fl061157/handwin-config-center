@@ -13,6 +13,7 @@ import com.handwin.config.proto.PortoSerializable;
 public class ConfigSetFrame extends BaseFrame {
 	
 	private MessageProto.ConfigMessage configMessage ;
+	private MessageProto.ConfigMessage.Builder builder ;
 	private static PortoSerializable<MessageProto.ConfigMessage> portoSerializable = new PortoSerializable<MessageProto.ConfigMessage>(MessageProto.ConfigMessage.getDefaultInstance()) ;
 	
 	public ConfigSetFrame() {
@@ -26,6 +27,39 @@ public class ConfigSetFrame extends BaseFrame {
 	public void setConfigMessage(MessageProto.ConfigMessage configMessage) {
 		this.configMessage = configMessage;
 	}
+	
+	public ConfigSetFrame setBusiness(String business) {
+		if( builder == null ) {
+			builder =  MessageProto.ConfigMessage.newBuilder() ;
+		}
+		builder.setBusiness( business ) ; 
+		return this ;
+	}
+	
+	public ConfigSetFrame setRegion(String region) {
+		if( builder == null ) {
+			builder =  MessageProto.ConfigMessage.newBuilder() ;
+		}
+		builder.setRegion( region ) ;
+		return this ;
+	}
+	
+	public ConfigSetFrame setContent(String content) {
+		if( builder == null ) {
+			builder =  MessageProto.ConfigMessage.newBuilder() ;
+		}
+		builder.setContent( content ) ;
+		return this ;
+	}
+	
+	
+	public ConfigSetFrame build() {
+		if( builder != null ) {
+			configMessage = builder.build() ;
+		}
+		return this ;
+	}
+	
 	
 	@Override
 	public void encode(ByteBuf out) {
