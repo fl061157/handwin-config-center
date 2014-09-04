@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.handwin.config.mapper.ConfigInfoMapper">
+
+  <resultMap id="configInfoResultMap" type="com.handwin.config.bean.ConfigInfo">
+    <id column="id" property="id" />
+    <result column="region" property="region"/>
+    <result column="business" property="business"/>
+    <result column="content" property="content"/>
+    <result column="gmt_create" property="gmtCeate"/>
+    <result column="gmt_modified" property="gmtModified"/>
+  </resultMap>
+
+  <parameterMap id="configInfoParamMap" type="com.handwin.config.bean.ConfigInfo" />
+	
+  <insert id="create" parameterType="com.handwin.config.bean.ConfigInfo">
+  	INSERT INTO config_info ( region , business , content , gmt_create , gmt_modified )  
+  	VALUES (#{configInfo.region}, #{configInfo.business}, #{configInfo.content} , now() , now() )   
+  </insert>
+  
+  <select id="get" resultMap="configInfoResultMap"> 
+  	SELECT * FROM config_info WHERE region = #{region} AND business = #{business} 
+  </select>
+
+</mapper>
