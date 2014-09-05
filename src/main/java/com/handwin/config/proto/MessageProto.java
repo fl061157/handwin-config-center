@@ -55,6 +55,16 @@ public final class MessageProto {
      */
     com.google.protobuf.ByteString
         getContentBytes();
+
+    // optional int32 sequence = 4;
+    /**
+     * <code>optional int32 sequence = 4;</code>
+     */
+    boolean hasSequence();
+    /**
+     * <code>optional int32 sequence = 4;</code>
+     */
+    int getSequence();
   }
   /**
    * Protobuf type {@code ConfigMessage}
@@ -120,6 +130,11 @@ public final class MessageProto {
             case 26: {
               bitField0_ |= 0x00000004;
               content_ = input.readBytes();
+              break;
+            }
+            case 32: {
+              bitField0_ |= 0x00000008;
+              sequence_ = input.readInt32();
               break;
             }
           }
@@ -291,10 +306,27 @@ public final class MessageProto {
       }
     }
 
+    // optional int32 sequence = 4;
+    public static final int SEQUENCE_FIELD_NUMBER = 4;
+    private int sequence_;
+    /**
+     * <code>optional int32 sequence = 4;</code>
+     */
+    public boolean hasSequence() {
+      return ((bitField0_ & 0x00000008) == 0x00000008);
+    }
+    /**
+     * <code>optional int32 sequence = 4;</code>
+     */
+    public int getSequence() {
+      return sequence_;
+    }
+
     private void initFields() {
       region_ = "";
       business_ = "";
       content_ = "";
+      sequence_ = 0;
     }
     private byte memoizedIsInitialized = -1;
     public final boolean isInitialized() {
@@ -317,6 +349,9 @@ public final class MessageProto {
       if (((bitField0_ & 0x00000004) == 0x00000004)) {
         output.writeBytes(3, getContentBytes());
       }
+      if (((bitField0_ & 0x00000008) == 0x00000008)) {
+        output.writeInt32(4, sequence_);
+      }
       getUnknownFields().writeTo(output);
     }
 
@@ -337,6 +372,10 @@ public final class MessageProto {
       if (((bitField0_ & 0x00000004) == 0x00000004)) {
         size += com.google.protobuf.CodedOutputStream
           .computeBytesSize(3, getContentBytes());
+      }
+      if (((bitField0_ & 0x00000008) == 0x00000008)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeInt32Size(4, sequence_);
       }
       size += getUnknownFields().getSerializedSize();
       memoizedSerializedSize = size;
@@ -460,6 +499,8 @@ public final class MessageProto {
         bitField0_ = (bitField0_ & ~0x00000002);
         content_ = "";
         bitField0_ = (bitField0_ & ~0x00000004);
+        sequence_ = 0;
+        bitField0_ = (bitField0_ & ~0x00000008);
         return this;
       }
 
@@ -500,6 +541,10 @@ public final class MessageProto {
           to_bitField0_ |= 0x00000004;
         }
         result.content_ = content_;
+        if (((from_bitField0_ & 0x00000008) == 0x00000008)) {
+          to_bitField0_ |= 0x00000008;
+        }
+        result.sequence_ = sequence_;
         result.bitField0_ = to_bitField0_;
         onBuilt();
         return result;
@@ -530,6 +575,9 @@ public final class MessageProto {
           bitField0_ |= 0x00000004;
           content_ = other.content_;
           onChanged();
+        }
+        if (other.hasSequence()) {
+          setSequence(other.getSequence());
         }
         this.mergeUnknownFields(other.getUnknownFields());
         return this;
@@ -780,6 +828,39 @@ public final class MessageProto {
         return this;
       }
 
+      // optional int32 sequence = 4;
+      private int sequence_ ;
+      /**
+       * <code>optional int32 sequence = 4;</code>
+       */
+      public boolean hasSequence() {
+        return ((bitField0_ & 0x00000008) == 0x00000008);
+      }
+      /**
+       * <code>optional int32 sequence = 4;</code>
+       */
+      public int getSequence() {
+        return sequence_;
+      }
+      /**
+       * <code>optional int32 sequence = 4;</code>
+       */
+      public Builder setSequence(int value) {
+        bitField0_ |= 0x00000008;
+        sequence_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional int32 sequence = 4;</code>
+       */
+      public Builder clearSequence() {
+        bitField0_ = (bitField0_ & ~0x00000008);
+        sequence_ = 0;
+        onChanged();
+        return this;
+      }
+
       // @@protoc_insertion_point(builder_scope:ConfigMessage)
     }
 
@@ -805,10 +886,10 @@ public final class MessageProto {
       descriptor;
   static {
     java.lang.String[] descriptorData = {
-      "\n\022config-message.pro\"B\n\rConfigMessage\022\016\n" +
+      "\n\022config-message.pro\"T\n\rConfigMessage\022\016\n" +
       "\006region\030\001 \001(\t\022\020\n\010business\030\002 \001(\t\022\017\n\007conte" +
-      "nt\030\003 \001(\tB(\n\030com.handwin.config.protoB\014Me" +
-      "ssageProto"
+      "nt\030\003 \001(\t\022\020\n\010sequence\030\004 \001(\005B(\n\030com.handwi" +
+      "n.config.protoB\014MessageProto"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
       new com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner() {
@@ -820,7 +901,7 @@ public final class MessageProto {
           internal_static_ConfigMessage_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_ConfigMessage_descriptor,
-              new java.lang.String[] { "Region", "Business", "Content", });
+              new java.lang.String[] { "Region", "Business", "Content", "Sequence", });
           return null;
         }
       };

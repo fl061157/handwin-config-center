@@ -10,6 +10,7 @@ import io.netty.buffer.ByteBuf;
 public abstract class BaseFrame {
 	
 	private FrameType frameType ;
+	private long sequence ;
 	public BaseFrame(FrameType frameType  ) {
 		this.frameType = frameType ;
 	}
@@ -19,6 +20,14 @@ public abstract class BaseFrame {
 	}
 
 	public abstract void encode(ByteBuf out ) ;
+	
+	public long getSequence() {
+		return sequence;
+	}
+	
+	public void setSequence(long sequence) {
+		this.sequence = sequence;
+	}
 	
 	
 }

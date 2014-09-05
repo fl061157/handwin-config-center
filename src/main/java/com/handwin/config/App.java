@@ -25,8 +25,15 @@ public class App {
         ConfigQueryFrame frame = new ConfigQueryFrame() ;
         frame = frame.setBusiness("REDIS").setRegion("0086").build() ;
         handler.write(frame);   
-//        for( int i = 0 ; i < 100000 ; i++ ) {
-//        }
-//    	
+        for( int i = 0 ; i < 100000 ; i++ ) {
+        	ConfigQueryFrame cf = (ConfigQueryFrame)handler.rpc("0086", "REDIS") ;
+        	System.out.println(cf.getConfigMessage().getContent() + "   :    " + cf.getSequence() ); 
+        }
+    	
+        
+//      for( int i = 0 ; i < 100000 ; i++ ) {
+//    	  handler.write(frame);   
+//    }
+//        
     }
 }

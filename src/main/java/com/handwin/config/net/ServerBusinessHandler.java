@@ -40,6 +40,9 @@ public class ServerBusinessHandler extends SimpleChannelInboundHandler<BaseFrame
 			configMessageBuilder.setBusiness( configInfo.getBusiness() ) ; 
 			configMessageBuilder.setRegion( configInfo.getRegion() ) ;
 			configMessageBuilder.setContent( configInfo.getContent() ) ; 
+			if( msg.getSequence() != 0 ) {
+				configMessageBuilder.setSequence( (int)msg.getSequence() ) ; 
+			}
 			MessageProto.ConfigMessage configMessage = configMessageBuilder.build() ;
 			ConfigQueryFrame response = new ConfigQueryFrame() ;
 			response.setConfigMessage(configMessage) ; 

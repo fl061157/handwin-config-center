@@ -11,6 +11,8 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
 
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -36,6 +38,9 @@ public class ClientFrameHandler extends SimpleChannelInboundHandler<BaseFrame> {
 	private  ReentrantReadWriteLock.WriteLock writeLock = readAndWiteLock.writeLock() ;
 	private Condition condition = writeLock.newCondition() ;
 	private ConfigQueryFrameHandler configQueryFrameHandler ;
+	private AtomicLong idGenerator = new AtomicLong(1) ; 
+	private ExpireWheel<ResponseFuture<BaseFrame>> expireWheel = new ExpireWheel<ResponseFuture<BaseFrame>>();
+	
 	
 	
 	public static final int RECONNECT_SECONDS = 5 ;
@@ -48,16 +53,23 @@ public class ClientFrameHandler extends SimpleChannelInboundHandler<BaseFrame> {
 	}
 	
 	
-	@Override
+	@Override         
 	protected void messageReceived(ChannelHandlerContext ctx, BaseFrame msg)
 			throws Exception {
 		if( msg instanceof PongFrame ) {
 			//LOG IT
 			System.out.println("That's Pong Frame ") ;
-		} else if( msg instanceof ConfigQueryFrame ) {
+		} else if( msg instanceof ConfigQueryFrame ) { //RPC 
 			ConfigQueryFrame configQueryFrame =(ConfigQueryFrame) msg ;
-			System.out.println( "Region: " + configQueryFrame.getConfigMessage().getRegion() + "   Business: " + configQueryFrame.getConfigMessage().getBusiness()  ) ; 
-			configQueryFrameHandler.handle(configQueryFrame);
+			//System.out.println( "Region: " + configQueryFrame.getConfigMessage().getRegion() + "   Business: " + configQueryFrame.getConfigMessage().getBusiness()  ) ; 
+			if( msg.getSequence() != 0 ) { //RPC 自己处理 否则 触发 Handle 异步更新之
+				ResponseFuture<BaseFrame> responseFuture = expireWheel.remove( msg.getSequence() ) ; 
+				if( responseFuture != null ) {
+					responseFuture.setResponse(configQueryFrame).setSuccess() ;
+				}
+			} else {
+				configQueryFrameHandler.handle(configQueryFrame);
+			}
 		} //TODO Other Message
 	}
 	
@@ -117,6 +129,38 @@ public class ClientFrameHandler extends SimpleChannelInboundHandler<BaseFrame> {
 		}
 	}
 	
+	
+	
+	
+	public BaseFrame rpc(String region , String business ) throws InterruptedException , TimeoutException  {
+		readLock.lock(); 
+		try {
+			long start = System.currentTimeMillis();
+			while( channel == null || ! channel.isActive() ) {
+				try {
+					condition.await( WRITE_TIME_OUT , TimeUnit.MILLISECONDS ) ;
+				} catch (Exception e) {
+					throw new RuntimeException("Channel Is InActive !");
+				}
+				if ( System.currentTimeMillis() - start > WRITE_TIME_OUT ) {
+                     break;
+                }
+			}
+			if( channel == null || ! channel.isActive() ) {
+				throw new RuntimeException("Channel Is InActive !");
+			}
+			long sequence = idGenerator.getAndIncrement() ;
+			ConfigQueryFrame frame = new ConfigQueryFrame().setBusiness(business).setRegion(region);
+			frame.setSequence(sequence);
+			frame =  frame.build()  ; 
+			ResponseFuture<BaseFrame> responseFuture = new ResponseFuture<BaseFrame>();
+			expireWheel.put( sequence, responseFuture ); 
+			channel.writeAndFlush( frame ) ; 
+			return responseFuture.await( 1000, TimeUnit.MILLISECONDS ).get() ; 
+		} finally {
+			readLock.unlock(); 
+		}
+	}
 	
 	public void start() throws InterruptedException {
 		configureBootstrap(new Bootstrap() , new NioEventLoopGroup( 2 ) ).connect().sync() ;

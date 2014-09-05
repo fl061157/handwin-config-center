@@ -46,9 +46,22 @@ public class ConfigQueryFrame extends BaseFrame {
 	
 	public ConfigQueryFrame build() {
 		if( builder != null ) {
+			if( this.getSequence() != 0 ) {
+				builder.setSequence( (int)this.getSequence() ) ;  //TODO 此处类型有问题
+			}
 			configMessage = builder.build() ;
 		}
 		return this ;
+	}
+	
+	@Override
+	public long getSequence() {
+		if( configMessage != null ) {
+			return configMessage.getSequence() ;
+		} else {
+			return super.getSequence() ;
+		}
+		
 	}
 	
 	
