@@ -12,6 +12,7 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -28,23 +29,23 @@ import com.handwin.config.net.PongFrame;
 @Sharable
 public class ClientFrameHandler extends SimpleChannelInboundHandler<BaseFrame> {
 	
-	private Channel channel ;
+	private volatile Channel channel ;
 	private final String host ;
 	private final int port ;
 	private EventLoopGroup loopGroup ;
-	//private Object lock = new Object() ;
-	private ReentrantReadWriteLock readAndWiteLock = new ReentrantReadWriteLock();
-	private  ReentrantReadWriteLock.ReadLock readLock = readAndWiteLock.readLock() ;
-	private  ReentrantReadWriteLock.WriteLock writeLock = readAndWiteLock.writeLock() ;
-	private Condition condition = writeLock.newCondition() ;
+	private Object lock = new Object() ;
+//	private ReentrantReadWriteLock readAndWiteLock = new ReentrantReadWriteLock();
+//	private  ReentrantReadWriteLock.ReadLock readLock = readAndWiteLock.readLock() ;
+//	private  ReentrantReadWriteLock.WriteLock writeLock = readAndWiteLock.writeLock() ;
+//	private Condition condition = writeLock.newCondition() ;
 	private ConfigQueryFrameHandler configQueryFrameHandler ;
 	private AtomicLong idGenerator = new AtomicLong(1) ; 
 	private ExpireWheel<ResponseFuture<BaseFrame>> expireWheel = new ExpireWheel<ResponseFuture<BaseFrame>>();
-	
+	private AtomicBoolean start = new AtomicBoolean( false );
 	
 	
 	public static final int RECONNECT_SECONDS = 5 ;
-	public static final int WRITE_TIME_OUT =  500 ;
+	public static final int WRITE_TIME_OUT =  5000 ;
 	
 	public ClientFrameHandler(String host , int port , ConfigQueryFrameHandler configQueryFrameHandler) {
 		this.host = host ;
@@ -75,13 +76,16 @@ public class ClientFrameHandler extends SimpleChannelInboundHandler<BaseFrame> {
 	
 	@Override
 	public void channelActive(ChannelHandlerContext ctx) throws Exception {
-		writeLock.lock();
-		try {
-			channel = ctx.channel() ; 
-			condition.signalAll(); 
-		} finally {
-			writeLock.unlock(); 
-		} //TODO 发送自己的需求列表 ， 还是 访问时候触发
+		 synchronized (lock) {
+             channel = ctx.channel()  ;
+             lock.notifyAll() ;
+     }
+//		writeLock.lock();
+//		try {
+//			condition.signalAll(); 
+//		} finally {
+//			writeLock.unlock(); 
+//		} //TODO 发送自己的需求列表 ， 还是 访问时候触发
 	}
 	
 	@Override
@@ -107,48 +111,43 @@ public class ClientFrameHandler extends SimpleChannelInboundHandler<BaseFrame> {
 	}
 	
 	public void write(BaseFrame baseFrame ) throws InterruptedException {
-		readLock.lock(); 
-		try {
-			long start = System.currentTimeMillis();
-			while( channel == null || ! channel.isActive() ) {
-				try {
-					condition.await( WRITE_TIME_OUT , TimeUnit.MILLISECONDS ) ;
-				} catch (Exception e) {
-					throw new RuntimeException("Channel Is InActive !");
+		if( channel == null ) {
+			synchronized ( lock ) {
+				InterruptedException interrupted = null ;
+				while( channel == null ||  !channel.isActive() ) {
+					if( interrupted != null ) {
+						throw interrupted ;
+					}
+					try {
+						lock.wait() ;
+					} catch (InterruptedException e) {
+						interrupted = e ;
+					}
 				}
-				if ( System.currentTimeMillis() - start > WRITE_TIME_OUT ) {
-                     break;
-                }
 			}
-			if( channel == null || ! channel.isActive() ) {
-				throw new RuntimeException("Channel Is InActive !");
-			}
-			channel.writeAndFlush( baseFrame ) ; 
-		} finally {
-			readLock.unlock(); 
+		}
+		if( channel != null ) {
+			channel.writeAndFlush( baseFrame ) ;
 		}
 	}
 	
-	
-	
-	
 	public BaseFrame rpc(String region , String business ) throws InterruptedException , TimeoutException  {
-		readLock.lock(); 
-		try {
-			long start = System.currentTimeMillis();
-			while( channel == null || ! channel.isActive() ) {
-				try {
-					condition.await( WRITE_TIME_OUT , TimeUnit.MILLISECONDS ) ;
-				} catch (Exception e) {
-					throw new RuntimeException("Channel Is InActive !");
+		if( channel == null ) {
+			synchronized ( lock ) {
+				InterruptedException interrupted = null ;
+				while( channel == null ||  !channel.isActive() ) {
+					if( interrupted != null ) {
+						throw interrupted ;
+					}
+					try {
+						lock.wait() ;
+					} catch (InterruptedException e) {
+						interrupted = e ;
+					}
 				}
-				if ( System.currentTimeMillis() - start > WRITE_TIME_OUT ) {
-                     break;
-                }
 			}
-			if( channel == null || ! channel.isActive() ) {
-				throw new RuntimeException("Channel Is InActive !");
-			}
+		}
+		if( channel != null ) {
 			long sequence = idGenerator.getAndIncrement() ;
 			ConfigQueryFrame frame = new ConfigQueryFrame().setBusiness(business).setRegion(region);
 			frame.setSequence(sequence);
@@ -157,13 +156,15 @@ public class ClientFrameHandler extends SimpleChannelInboundHandler<BaseFrame> {
 			expireWheel.put( sequence, responseFuture ); 
 			channel.writeAndFlush( frame ) ; 
 			return responseFuture.await( 1000, TimeUnit.MILLISECONDS ).get() ; 
-		} finally {
-			readLock.unlock(); 
-		}
+		} 
+		return null ;
 	}
 	
-	public void start() throws InterruptedException {
-		configureBootstrap(new Bootstrap() , new NioEventLoopGroup( 2 ) ).connect().sync() ;
+	public ClientFrameHandler start() throws InterruptedException {
+		if( start.compareAndSet(false, true) ) {
+			configureBootstrap(new Bootstrap() , new NioEventLoopGroup( 2 ) ).connect().sync() ;
+		}
+		return this ;
 	}
 	
 	public void start( EventLoopGroup loopGroup ) throws InterruptedException {

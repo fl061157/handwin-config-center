@@ -6,6 +6,7 @@ import org.junit.Test;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.support.FileSystemXmlApplicationContext;
 
+import com.alibaba.fastjson.JSON;
 import com.handwin.config.bean.ConfigInfo;
 
 
@@ -22,13 +23,19 @@ public class ConfigInfoMapperTest {
 	}
 	
 	@Test
-	public void testCreate() {
+	public void w() {
 		ConfigInfo configInfo = new ConfigInfo() ;
 		configInfo.setBusiness("REDIS"); 
 		configInfo.setRegion("0086"); 
-		configInfo.setContent("192.168.1.241:6379"); 
+		
+		JedisConfig jedisConfig = new JedisConfig() ;
+		jedisConfig.setHost("127.0.0.1");
+		jedisConfig.setPort(6379); 
+		
+		
+		configInfo.setContent(JSON.toJSONString( jedisConfig ) ); 
 		try {
-			configInfoMapper.create(configInfo) ;
+			configInfoMapper.create(configInfo) ; 
 		} catch (Exception e) {
 			e.printStackTrace();
 			Assert.assertNotNull( null ); 
